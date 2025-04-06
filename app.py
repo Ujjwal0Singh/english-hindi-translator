@@ -1,42 +1,41 @@
 import streamlit as st
 import pickle
-import numpy as np
 import tensorflow as tf
+import numpy as np
+from tensorflow.keras.preprocessing.sequence import pad_sequences
 
+# Load model and tokenizers
 model = tf.keras.models.load_model('translation_model.h5')
-seq = tf.keras.preprocessing.sequence.pad_sequences(...)
 
-# Load the model and tokenizers
 with open('eng_tokenizer.pkl', 'rb') as f:
     eng_tokenizer = pickle.load(f)
 with open('hin_tokenizer.pkl', 'rb') as f:
     hin_tokenizer = pickle.load(f)
 
-# Get vocabulary size and max sequence length
-max_len = 20  # Replace with the value you used during training
+max_seq_len = 20  # Change to your actual max_eng_len
 
-# Translation function
+def preprocess_text(text):
+    return text.lower()
+
 def translate(sentence):
-    sentence = sentence.lower()
-    seq1 = eng_tokenizer.texts_to_sequences([sentence])
-    seq1 = seq(seq1, maxlen=max_len, padding='post')
+    sentence = preprocess_text(sentence)
+    seq = eng_tokenizer.texts_to_sequences([sentence])
+    seq = pad_sequences(seq, maxlen=max_seq_len, padding='post')
     prediction = model.predict(seq)
-    translated = []
-    for i in range(max_len):
-        word_index = np.argmax(prediction[0, i])
+
+    translated_sentence = []
+    for i in range(max_seq_len):
+        word_index = np.argmax(prediction[0, i, :])
         if word_index > 0:
             word = hin_tokenizer.index_word.get(word_index, '')
-            translated.append(word)
-    return ' '.join(translated)
+            translated_sentence.append(word)
+    return ' '.join(translated_sentence)
 
-# Streamlit UI
-st.set_page_config(page_title="English to Hindi Translator")
-st.title("English to Hindi Translator")
+st.title("🗣️ English to Hindi Translator")
+st.write("Type an English sentence and get a Hindi translation!")
 
-user_input = st.text_input("Enter an English sentence:")
-if st.button("Translate"):
-    if user_input.strip() != "":
-        result = translate(user_input)
-        st.success(f"Hindi Translation: {result}")
+input_text = st.text_input("Enter English sentence:")
 
-
+if input_text:
+    translation = translate(input_text)
+    st.success(f"Hindi Translation: {translation}")
